@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#ffffff">
+<title>Running Tracker</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.0.0/dist/tabler-icons.min.css">
+<style>
+  :root {
+    --bg: #ffffff;
+    --bg2: #f5f5f3;
+    --bg3: #eeeee9;
+    --text: #1a1a18;
+    --text2: #666660;
+    --text3: #999993;
+    --border: rgba(0,0,0,0.12);
+    --border2: rgba(0,0,0,0.22);
+    --info-bg: #E6F1FB;
+    --info-text: #185FA5;
+    --success-bg: #EAF3DE;
+    --success-text: #3B6D11;
+    --danger-text: #A32D2D;
+    --radius: 8px;
+    --radius-lg: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1c1a;
+      --bg2: #252523;
+      --bg3: #2e2e2b;
+      --text: #f0f0ec;
+      --text2: #aaaaaa;
+      --text3: #777770;
+      --border: rgba(255,255,255,0.12);
+      --border2: rgba(255,255,255,0.22);
+      --info-bg: #0c2a4a;
+      --info-text: #85B7EB;
+      --success-bg: #1a2e0a;
+      --success-text: #97C459;
+      --danger-text: #F09595;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg3); color: var(--text); min-height: 100vh; }
+  .app { max-width: 600px; margin: 0 auto; padding: 0 0 80px; }
+  .header { background: var(--bg); border-bottom: 0.5px solid var(--border); padding: 16px; position: sticky; top: 0; z-index: 10; }
+  .header h1 { font-size: 18px; font-weight: 600; color: var(--text); }
+  .header p { font-size: 12px; color: var(--text2); margin-top: 2px; }
+  .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg); border-top: 0.5px solid var(--border); display: flex; z-index: 10; }
+  .bn { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 10px 4px; border: none; background: transparent; color: var(--text2); cursor: pointer; font-size: 10px; font-family: inherit; }
+  .bn i { font-size: 22px; }
+  .bn.on { color: var(--info-text); }
+  .view { display: none; padding: 16px; }
+  .view.on { display: block; }
+  .sg { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+  .st { background: var(--bg2); border-radius: var(--radius); padding: 12px; }
+  .sl { font-size: 11px; color: var(--text2); margin-bottom: 4px; }
+  .sv { font-size: 20px; font-weight: 600; color: var(--text); }
+  .ss { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  .card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 14px 16px; margin-bottom: 12px; }
+  .card.this-week { border: 2px solid var(--info-text); }
+  .card.race-week { border: 2px solid #854F0B; }
+  .ch { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .ct { font-size: 14px; font-weight: 600; color: var(--text); }
+  .cs { font-size: 12px; color: var(--text2); }
+  .db { font-size: 12px; font-weight: 600; padding: 3px 10px; border-radius: var(--radius); }
+  .sr { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 0.5px solid var(--border); }
+  .sr:last-child { border-bottom: none; }
+  .sc { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--border2); display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; background: transparent; }
+  .sc.done { background: var(--success-bg); border-color: var(--success-text); }
+  .sc.done i { color: var(--success-text); }
+  .sc i { font-size: 13px; color: var(--text3); }
+  .si { flex: 1; min-width: 0; }
+  .sn { font-size: 13px; color: var(--text); }
+  .sn.done { color: var(--text2); text-decoration: line-through; }
+  .sm { font-size: 11px; color: var(--text2); margin-top: 1px; }
+  .tp { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 20px; flex-shrink: 0; white-space: nowrap; }
+  .wh { display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
+  .whl { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .wl { font-size: 13px; font-weight: 600; color: var(--text); }
+  .wp { font-size: 11px; color: var(--text2); }
+  .pb-bar { height: 4px; background: var(--border); border-radius: 2px; margin: 8px 0 4px; }
+  .pb-fill { height: 4px; border-radius: 2px; background: #1D9E75; transition: width .3s; }
+  .week-sessions { display: none; padding-top: 4px; }
+  .week-tag { font-size: 10px; font-weight: 600; padding: 2px 7px; border-radius: 20px; }
+  .phase-header { display: flex; align-items: center; gap: 8px; margin: 20px 0 10px; }
+  .ph-badge { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; }
+  .ph-name { font-size: 15px; font-weight: 600; color: var(--text); }
+  .form-group { margin-bottom: 14px; }
+  .fl { font-size: 12px; color: var(--text2); margin-bottom: 5px; font-weight: 500; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  input[type=date], input[type=number], select, textarea {
+    width: 100%; padding: 10px 12px; border: 0.5px solid var(--border2); border-radius: var(--radius);
+    background: var(--bg2); color: var(--text); font-size: 15px; font-family: inherit;
+    -webkit-appearance: none; appearance: none;
+  }
+  textarea { resize: vertical; min-height: 80px; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--info-text); }
+  .btn-primary { width: 100%; padding: 12px; background: var(--info-bg); color: var(--info-text); border: none; border-radius: var(--radius); font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit; }
+  .btn-primary:active { opacity: 0.8; }
+  .saved-msg { font-size: 13px; color: var(--success-text); text-align: center; padding: 8px 0; display: none; }
+  .re { display: flex; align-items: start; gap: 10px; padding: 10px 0; border-bottom: 0.5px solid var(--border); }
+  .re:last-child { border-bottom: none; }
+  .rd { font-size: 11px; color: var(--text2); min-width: 68px; padding-top: 2px; }
+  .ri { flex: 1; min-width: 0; }
+  .rt { font-size: 13px; font-weight: 600; color: var(--text); }
+  .rp { font-size: 11px; color: var(--text2); margin-top: 2px; }
+  .rno { font-size: 11px; color: var(--text2); margin-top: 3px; font-style: italic; }
+  .delb { background: none; border: none; cursor: pointer; color: var(--text2); padding: 4px; opacity: 0.5; }
+  .delb:active { opacity: 1; color: var(--danger-text); }
+  .empty { text-align: center; padding: 30px 16px; color: var(--text2); font-size: 13px; line-height: 1.6; }
+  .pace-zone { display: flex; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 0.5px solid var(--border); }
+  .pace-zone:last-child { border-bottom: none; }
+  .pz-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .pz-info { flex: 1; }
+  .pz-name { font-size: 13px; font-weight: 600; color: var(--text); }
+  .pz-feel { font-size: 11px; color: var(--text2); margin-top: 2px; }
+  .pz-pace { font-size: 14px; font-weight: 600; text-align: right; white-space: nowrap; }
+  .recalc-row { display: flex; align-items: center; gap: 10px; margin-top: 14px; padding-top: 14px; border-top: 0.5px solid var(--border); flex-wrap: wrap; }
+  .recalc-row label { font-size: 12px; color: var(--text2); white-space: nowrap; font-weight: 500; }
+  .recalc-row input { width: 80px; flex-shrink: 0; }
+  .recalc-btn { padding: 10px 16px; background: var(--bg2); color: var(--text); border: 0.5px solid var(--border2); border-radius: var(--radius); font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit; white-space: nowrap; }
+  .tip-row { display: flex; gap: 10px; padding: 10px 0; border-bottom: 0.5px solid var(--border); font-size: 13px; }
+  .tip-row:last-child { border-bottom: none; }
+  .tip-row i { font-size: 16px; color: var(--text2); flex-shrink: 0; margin-top: 1px; }
+  .tip-label { font-weight: 600; color: var(--text); }
+  .tip-body { color: var(--text2); margin-top: 2px; line-height: 1.5; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <h1>Running Tracker</h1>
+    <p id="header-sub">Wirral · Caernarfon · Conwy</p>
+  </div>
+
+  <div id="v-dashboard" class="view on">
+    <div class="sg" id="dstats"></div>
+    <div id="dcards"></div>
+    <div class="card">
+      <div class="ch"><span class="ct">Next session</span></div>
+      <div id="dnext"></div>
+    </div>
+  </div>
+
+  <div id="v-plan" class="view">
+    <div id="phases"></div>
+  </div>
+
+  <div id="v-log" class="view">
+    <div class="card">
+      <div class="ch"><span class="ct">Log a run</span></div>
+      <div class="form-group"><div class="fl">Date</div><input type="date" id="ld"></div>
+      <div class="form-row">
+        <div class="form-group"><div class="fl">Distance (km)</div><input type="number" id="ldist" placeholder="5.2" step="0.1" min="0"></div>
+        <div class="form-group"><div class="fl">Time (mins)</div><input type="number" id="ltime" placeholder="32" step="1" min="0"></div>
+      </div>
+      <div class="form-group">
+        <div class="fl">Run type</div>
+        <select id="ltype">
+          <option value="easy">Easy run</option>
+          <option value="tempo">Tempo</option>
+          <option value="intervals">Intervals</option>
+          <option value="long">Long run</option>
+          <option value="race">Race</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="form-group"><div class="fl">Notes (optional)</div><textarea id="lnotes" placeholder="How did it feel? Any aches or highlights..."></textarea></div>
+      <button class="btn-primary" onclick="saveRun()">Save run</button>
+      <div class="saved-msg" id="lconf">Run saved!</div>
+    </div>
+  </div>
+
+  <div id="v-history" class="view">
+    <div class="sg" id="hstats"></div>
+    <div class="card">
+      <div class="ch"><span class="ct">All runs</span><span class="cs" id="rcount"></span></div>
+      <div id="rlist"></div>
+    </div>
+  </div>
+
+  <div id="v-pacing" class="view">
+    <div class="card">
+      <div class="ch"><span class="ct">Pace zones</span><span class="cs" id="pacing-basis"></span></div>
+      <div id="pace-zones"></div>
+      <div class="recalc-row">
+        <label>Update 10k time (mins):</label>
+        <input type="number" id="pb10-input" placeholder="e.g. 60" min="30" max="120" step="1" style="width:80px">
+        <button class="recalc-btn" onclick="updatePaces()">Recalculate</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ch"><span class="ct">Race pace targets</span></div>
+      <div id="race-paces"></div>
+    </div>
+    <div class="card">
+      <div class="ch"><span class="ct">How to use these zones</span></div>
+      <div class="tip-row"><i class="ti ti-chart-pie"></i><div><div class="tip-label">80/20 rule</div><div class="tip-body">About 80% of your runs should be easy. Only 20% hard. Most runners go too fast on easy days.</div></div></div>
+      <div class="tip-row"><i class="ti ti-mood-smile"></i><div><div class="tip-label">Easy runs</div><div class="tip-body">Should feel embarrassingly slow. If you can't hold a full conversation, you're going too fast.</div></div></div>
+      <div class="tip-row"><i class="ti ti-clock"></i><div><div class="tip-label">Tempo runs</div><div class="tip-body">Comfortably hard — short sentences only, slightly breathless.</div></div></div>
+      <div class="tip-row"><i class="ti ti-flame"></i><div><div class="tip-label">After Wirral</div><div class="tip-body">Enter your actual race time above to recalculate all your zones for the rest of the plan.</div></div></div>
+    </div>
+  </div>
+
+  <nav class="bottom-nav">
+    <button class="bn on" onclick="sv('dashboard',this)"><i class="ti ti-home"></i>Home</button>
+    <button class="bn" onclick="sv('plan',this)"><i class="ti ti-list-check"></i>Plan</button>
+    <button class="bn" onclick="sv('log',this)"><i class="ti ti-plus"></i>Log</button>
+    <button class="bn" onclick="sv('history',this)"><i class="ti ti-history"></i>History</button>
+    <button class="bn" onclick="sv('pacing',this)"><i class="ti ti-gauge"></i>Pacing</button>
+  </nav>
+</div>
+
+<script>
+const RACES=[
+  {id:'wirral',name:'Wirral 10k',date:'2026-05-31',dist:'10k',goal:'Sub 60 min'},
+  {id:'caernarfon',name:'Caernarfon Half Marathon',date:'2026-09-06',dist:'21.1k',goal:'Finish strong'},
+  {id:'conwy',name:'Conwy Half Marathon',date:'2026-11-15',dist:'21.1k',goal:'Target a time'}
+];
+const PLAN=[
+  {ph:1,name:'Phase 1 — Wirral 10k',color:'#185FA5',bg:'#E6F1FB',weeks:[
+    {id:'w1',label:'Wk 1 · 18–24 May',race:null,sessions:[
+      {id:'1a',type:'easy',name:'Easy 5k',d:'Conversational pace — should feel effortless'},
+      {id:'1b',type:'intervals',name:'6×400m intervals',d:'Hard effort on each rep, 90 sec jog recovery'},
+      {id:'1c',type:'tempo',name:'20 min tempo run',d:'Comfortably hard — short sentences only'},
+      {id:'1d',type:'long',name:'Long run 8k',d:'Easy pace throughout, no pushing'},
+      {id:'1e',type:'easy',name:'2× rest / cross-train days',d:'Walk, stretch, or light cross-training'}
+    ]},
+    {id:'w2',label:'Wk 2 · 25–31 May',race:'wirral',sessions:[
+      {id:'2a',type:'easy',name:'Easy 20 min jog',d:'Very easy — shake out the legs'},
+      {id:'2b',type:'intervals',name:'4×400m at race pace',d:'Target 5:58/km to feel the pace'},
+      {id:'2c',type:'easy',name:'Rest — day before race',d:'Complete rest. Trust the taper.'},
+      {id:'2d',type:'race',name:'Wirral 10k — race day!',d:'31 May · Goal: sub 60 min · Go out at 5:58/km and hold it'}
+    ]}
+  ]},
+  {ph:2,name:'Phase 2 — Caernarfon Half Marathon',color:'#3B6D11',bg:'#EAF3DE',weeks:[
+    {id:'w3',label:'Wk 3 · 1–7 Jun · Recovery',race:null,sessions:[
+      {id:'3a',type:'easy',name:'Easy 20–25 min',d:'Post-race recovery. Very easy — legs first.'},
+      {id:'3b',type:'easy',name:'Easy 20–25 min',d:'Only if legs feel good. Otherwise rest.'},
+      {id:'3c',type:'easy',name:'Easy 25–30 min',d:'Starting to feel normal again?'},
+      {id:'3d',type:'easy',name:'Rest days × 4',d:'Prioritise sleep and food this week'}
+    ]},
+    {id:'w4',label:'Wk 4 · 8–14 Jun · Base',race:null,sessions:[
+      {id:'4a',type:'easy',name:'Easy 6k',d:'Genuinely easy — nose breathing if possible'},
+      {id:'4b',type:'easy',name:'Easy 6k',d:'Same easy effort'},
+      {id:'4c',type:'tempo',name:'25 min tempo',d:'Comfortably hard — back into it'},
+      {id:'4d',type:'long',name:'Long run 10k',d:'Easy pace, no rushing'},
+      {id:'4e',type:'easy',name:'Rest days × 3',d:'Rest or gentle walk'}
+    ]},
+    {id:'w5',label:'Wk 5 · 15–21 Jun · Base',race:null,sessions:[
+      {id:'5a',type:'easy',name:'Easy 6k',d:'Easy effort'},
+      {id:'5b',type:'intervals',name:'6×600m intervals',d:'At 10k effort, 90 sec recovery'},
+      {id:'5c',type:'tempo',name:'28 min tempo',d:'Slightly longer than last week'},
+      {id:'5d',type:'long',name:'Long run 11k',d:'Easy pace'},
+      {id:'5e',type:'easy',name:'Rest days × 3',d:'Rest or cross-train'}
+    ]},
+    {id:'w6',label:'Wk 6 · 22–28 Jun · Base',race:null,sessions:[
+      {id:'6a',type:'easy',name:'Easy 7k',d:'Easy effort'},
+      {id:'6b',type:'intervals',name:'5×800m intervals',d:'10k effort, 2 min recovery'},
+      {id:'6c',type:'tempo',name:'30 min tempo',d:'Building consistency'},
+      {id:'6d',type:'long',name:'Long run 12k',d:'Easy pace throughout'},
+      {id:'6e',type:'easy',name:'Rest days × 3',d:'Rest or cross-train'}
+    ]},
+    {id:'w7',label:'Wk 7 · 29 Jun–5 Jul · Build',race:null,sessions:[
+      {id:'7a',type:'easy',name:'Easy 7k',d:'Easy effort'},
+      {id:'7b',type:'intervals',name:'5×1k intervals',d:'10k effort, 2 min recovery'},
+      {id:'7c',type:'tempo',name:'33 min tempo',d:'Sustained comfortably hard effort'},
+      {id:'7d',type:'long',name:'Long run 13k',d:'Easy — longest so far in Phase 2'},
+      {id:'7e',type:'easy',name:'Rest days × 3',d:'Rest or cross-train'}
+    ]},
+    {id:'w8',label:'Wk 8 · 6–12 Jul · Build',race:null,sessions:[
+      {id:'8a',type:'easy',name:'Easy 8k',d:'Easy effort'},
+      {id:'8b',type:'intervals',name:'5×1k intervals',d:'Slightly faster than last week'},
+      {id:'8c',type:'tempo',name:'35 min tempo',d:'Longest tempo yet — hold the effort'},
+      {id:'8d',type:'long',name:'Long run 14k',d:'Easy pace — take water if warm'},
+      {id:'8e',type:'easy',name:'Rest days × 3',d:'Rest or cross-train'}
+    ]},
+    {id:'w9',label:'Wk 9 · 13–19 Jul · HM build',race:null,sessions:[
+      {id:'9a',type:'easy',name:'Easy 8k',d:'Easy effort'},
+      {id:'9b',type:'intervals',name:'6×1k intervals',d:'Comfortably hard, 90 sec recovery'},
+      {id:'9c',type:'tempo',name:'38 min tempo',d:'Push the duration'},
+      {id:'9d',type:'long',name:'Long run 15k',d:'Easy — first true HM-distance build run'},
+      {id:'9e',type:'easy',name:'Rest days × 3',d:'Rest or cross-train'}
+    ]},
+    {id:'w10',label:'Wk 10 · 20–26 Jul · HM build',race:null,sessions:[
+      {id:'10a',type:'easy',name:'Easy 8k',d:'Easy effort'},
+      {id:'10b',type:'intervals',name:'3×2k intervals',d:'At half marathon effort, 2 min recovery'},
+      {id:'10c',type:'tempo',name:'40 min tempo',d:'Solid sustained effort'},
+      {id:'10d',type:'long',name:'Long run 16k',d:'Easy pace — practise fuelling if over 90 min'},
+      {id:'10e',type:'easy',name:'Rest days × 3',d:'Rest or cross-train'}
+    ]},
+    {id:'w11',label:'Wk 11 · 27 Jul–2 Aug · HM build',race:null,sessions:[
+      {id:'11a',type:'easy',name:'Easy 8k',d:'Easy effort'},
+      {id:'11b',type:'intervals',name:'3×2k intervals',d:'Building confidence at HM effort'},
+      {id:'11c',type:'tempo',name:'40 min tempo',d:'Consolidate — same as last week'},
+      {id:'11d',type:'long',name:'Long run 17k',d:'Easy — take a gel or snack at 60 min'},
+      {id:'11e',type:'easy',name:'Rest days × 3',d:'Rest or cross-train'}
+    ]},
+    {id:'w12',label:'Wk 12 · 3–9 Aug · Peak',race:null,sessions:[
+      {id:'12a',type:'easy',name:'Easy 8k',d:'Easy effort'},
+      {id:'12b',type:'intervals',name:'4×1.5k intervals',d:'Strong effort, 2 min recovery'},
+      {id:'12c',type:'tempo',name:'40 min tempo',d:'Holding peak tempo'},
+      {id:'12d',type:'long',name:'Long run 18k',d:'Easy — this is your confidence builder'},
+      {id:'12e',type:'easy',name:'Rest days × 3',d:'Rest or cross-train'}
+    ]},
+    {id:'w13',label:'Wk 13 · 10–16 Aug · Peak',race:null,sessions:[
+      {id:'13a',type:'easy',name:'Easy 6k',d:'Easy effort'},
+      {id:'13b',type:'intervals',name:'4×1k intervals',d:'Sharp effort — feel fast'},
+      {id:'13c',type:'tempo',name:'35 min tempo',d:'Slightly reduced from peak'},
+      {id:'13d',type:'long',name:'Long run 19–20k',d:'Easy — your biggest run. Fuel well.'},
+      {id:'13e',type:'easy',name:'Rest days × 3',d:'Rest or cross-train'}
+    ]},
+    {id:'w14',label:'Wk 14 · 17–23 Aug · Taper',race:null,sessions:[
+      {id:'14a',type:'easy',name:'Easy 5k',d:'Very easy effort'},
+      {id:'14b',type:'intervals',name:'4×400m at race pace',d:'Feeling sharp — not tired'},
+      {id:'14c',type:'tempo',name:'20 min tempo',d:'Short and quality'},
+      {id:'14d',type:'long',name:'Long run 14k',d:'Cut back — legs should feel fresher'},
+      {id:'14e',type:'easy',name:'Rest days × 3',d:'Rest or cross-train'}
+    ]},
+    {id:'w15',label:'Wk 15 · 24–30 Aug · Taper',race:null,sessions:[
+      {id:'15a',type:'easy',name:'Easy 5k',d:'Very easy'},
+      {id:'15b',type:'easy',name:'Easy 4k',d:'Short shake-out run'},
+      {id:'15c',type:'intervals',name:'3×400m strides',d:'Easy but feel light on your feet'},
+      {id:'15d',type:'easy',name:'Rest days × 4',d:'Prioritise sleep. Trust the training.'}
+    ]},
+    {id:'w16',label:'Wk 16 · 31 Aug–6 Sep · Race week',race:'caernarfon',sessions:[
+      {id:'16a',type:'easy',name:'Easy 15 min',d:'Early week — very easy'},
+      {id:'16b',type:'easy',name:'Easy 10 min + 4 strides',d:'Mid-week — feel sharp'},
+      {id:'16c',type:'easy',name:'Rest — day before race',d:'Complete rest. Carb load. Sleep.'},
+      {id:'16d',type:'race',name:'Caernarfon Half Marathon — race day!',d:'6 Sep · Goal: finish strong · Run first 10k easy, reassess at halfway'}
+    ]}
+  ]},
+  {ph:3,name:'Phase 3 — Conwy Half Marathon',color:'#854F0B',bg:'#FAEEDA',weeks:[
+    {id:'w17',label:'Wk 17 · 7–13 Sep · Recovery',race:null,sessions:[
+      {id:'17a',type:'easy',name:'Easy 20 min',d:'Post-race recovery — very easy'},
+      {id:'17b',type:'easy',name:'Easy 20–25 min',d:'Legs starting to come back?'},
+      {id:'17c',type:'easy',name:'Easy 30 min',d:'Reflect on Caernarfon pacing'},
+      {id:'17d',type:'easy',name:'Rest days × 4',d:'Rest and recover fully'}
+    ]},
+    {id:'w18',label:'Wk 18 · 14–20 Sep · Base',race:null,sessions:[
+      {id:'18a',type:'easy',name:'Easy 7k',d:'Easy effort — back to business'},
+      {id:'18b',type:'easy',name:'Easy 7k',d:'Easy effort'},
+      {id:'18c',type:'tempo',name:'30 min tempo',d:'Back into it — use Caernarfon feel'},
+      {id:'18d',type:'long',name:'Long run 14k',d:'Easy pace'},
+      {id:'18e',type:'easy',name:'Rest days × 3',d:'Rest or cross-train'}
+    ]},
+    {id:'w19',label:'Wk 19 · 21–27 Sep · Build',race:null,sessions:[
+      {id:'19a',type:'easy',name:'Easy 8k',d:'Easy effort'},
+      {id:'19b',type:'intervals',name:'5×1k intervals',d:'At 10k effort, 2 min recovery'},
+      {id:'19c',type:'tempo',name:'35 min tempo',d:'Building back up'},
+      {id:'19d',type:'long',name:'Long run 15k',d:'Include 5k at target HM pace in middle'},
+      {id:'19e',type:'easy',name:'Rest days × 3',d:'Rest or cross-train'}
+    ]},
+    {id:'w20',label:'Wk 20 · 28 Sep–4 Oct · Build',race:null,sessions:[
+      {id:'20a',type:'easy',name:'Easy 8k',d:'Easy effort'},
+      {id:'20b',type:'intervals',name:'5×1k intervals',d:'Sharper than last week'},
+      {id:'20c',type:'tempo',name:'38 min tempo',d:'Pushing the duration'},
+      {id:'20d',type:'long',name:'Long run 16k',d:'Middle 8k at target HM pace'},
+      {id:'20e',type:'easy',name:'Rest days × 3',d:'Rest or cross-train'}
+    ]},
+    {id:'w21',label:'Wk 21 · 5–11 Oct · Build',race:null,sessions:[
+      {id:'21a',type:'easy',name:'Easy 8k',d:'Easy effort'},
+      {id:'21b',type:'intervals',name:'3×2k intervals',d:'HM effort, 2 min recovery'},
+      {id:'21c',type:'tempo',name:'40 min tempo',d:'Strong sustained effort'},
+      {id:'21d',type:'long',name:'Long run 17k',d:'Middle 10k at target HM pace'},
+      {id:'21e',type:'easy',name:'Rest days × 3',d:'Rest or cross-train'}
+    ]},
+    {id:'w22',label:'Wk 22 · 12–18 Oct · Build',race:null,sessions:[
+      {id:'22a',type:'easy',name:'Easy 8k',d:'Easy effort'},
+      {id:'22b',type:'intervals',name:'3×2k intervals',d:'Building confidence at race effort'},
+      {id:'22c',type:'tempo',name:'40 min tempo',d:'Holding peak tempo'},
+      {id:'22d',type:'long',name:'Long run 18k',d:'Middle 10k at goal HM pace'},
+      {id:'22e',type:'easy',name:'Rest days × 3',d:'Rest or cross-train'}
+    ]},
+    {id:'w23',label:'Wk 23 · 19–25 Oct · Peak',race:null,sessions:[
+      {id:'23a',type:'easy',name:'Easy 8k',d:'Easy effort'},
+      {id:'23b',type:'intervals',name:'4×1.5k intervals',d:'Race-sharp effort'},
+      {id:'23c',type:'tempo',name:'40 min tempo',d:'Peak tempo — hold it strong'},
+      {id:'23d',type:'long',name:'Long run 19k',d:'Middle 12k at goal HM pace'},
+      {id:'23e',type:'easy',name:'Rest days × 3',d:'Rest or cross-train'}
+    ]},
+    {id:'w24',label:'Wk 24 · 26 Oct–1 Nov · Peak',race:null,sessions:[
+      {id:'24a',type:'easy',name:'Easy 6k',d:'Easy effort'},
+      {id:'24b',type:'intervals',name:'4×1k intervals',d:'Fast and sharp'},
+      {id:'24c',type:'tempo',name:'35 min tempo',d:'Pulling back slightly'},
+      {id:'24d',type:'long',name:'Long run 20k',d:'Your biggest run — fuel well, easy effort'},
+      {id:'24e',type:'easy',name:'Rest days × 3',d:'Rest or cross-train'}
+    ]},
+    {id:'w25',label:'Wk 25 · 2–8 Nov · Taper',race:null,sessions:[
+      {id:'25a',type:'easy',name:'Easy 5k',d:'Very easy'},
+      {id:'25b',type:'intervals',name:'4×400m strides',d:'Feel light and fast — no effort'},
+      {id:'25c',type:'tempo',name:'20 min tempo',d:'Short quality session'},
+      {id:'25d',type:'long',name:'Long run 12k',d:'Easy — legs should feel bouncy'},
+      {id:'25e',type:'easy',name:'Rest days × 3',d:'Rest or cross-train'}
+    ]},
+    {id:'w26',label:'Wk 26 · 9–15 Nov · Race week',race:'conwy',sessions:[
+      {id:'26a',type:'easy',name:'Easy 15 min',d:'Early week — very easy'},
+      {id:'26b',type:'easy',name:'Easy 10 min + 4 strides',d:'Feel sharp and ready'},
+      {id:'26c',type:'easy',name:'Rest — day before race',d:'Complete rest. Carb load. Sleep well.'},
+      {id:'26d',type:'race',name:'Conwy Half Marathon — race day!',d:"15 Nov · Go for your time goal — you've earned it!"}
+    ]}
+  ]}
+];
+const TS={easy:{bg:'#E6F1FB',c:'#0C447C',l:'Easy'},tempo:{bg:'#EAF3DE',c:'#27500A',l:'Tempo'},intervals:{bg:'#FAEEDA',c:'#633806',l:'Intervals'},long:{bg:'#FAECE7',c:'#712B13',l:'Long'},race:{bg:'#EEEDFE',c:'#3C3489',l:'Race'},other:{bg:'#F1EFE8',c:'#444441',l:'Other'}};
+
+function lsGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
+function lsSet(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+
+let CS={},runs=[],pb10=62;
+function load(){
+  try{const r=lsGet('rt_cs');if(r)CS=JSON.parse(r)}catch(e){}
+  try{const r=lsGet('rt_runs');if(r)runs=JSON.parse(r)}catch(e){}
+  try{const r=lsGet('rt_pb10');if(r)pb10=parseFloat(r)||62}catch(e){}
+}
+function save(){
+  lsSet('rt_cs',JSON.stringify(CS));
+  lsSet('rt_runs',JSON.stringify(runs));
+  lsSet('rt_pb10',String(pb10));
+}
+function fmtPace(s){const m=Math.floor(s/60);const sec=Math.round(s%60);return m+':'+(sec<10?'0':'')+sec+'/km'}
+function calcZones(t){
+  const rp=t*60/10;
+  return {
+    easy:{lo:rp*1.18,hi:rp*1.28,dot:'#378ADD',label:'Easy',feel:'Fully conversational, nose breathing possible'},
+    tempo:{lo:rp*1.02,hi:rp*1.08,dot:'#1D9E75',label:'Tempo',feel:'Comfortably hard — short sentences only'},
+    intervals:{lo:rp*0.94,hi:rp*0.98,dot:'#BA7517',label:'Intervals',feel:'Hard but controlled, not a sprint'},
+    long:{lo:rp*1.18,hi:rp*1.28,dot:'#D4537E',label:'Long run',feel:'Same as easy — never push long runs'},
+    race:{lo:rp*0.998,hi:rp*1.002,dot:'#7F77DD',label:'Race pace (sub-60)',feel:'Sustained effort, hold 5:58/km throughout'}
+  };
+}
+function renderPacing(){
+  const z=calcZones(pb10);
+  document.getElementById('pacing-basis').textContent='Based on '+pb10+' min 10k';
+  document.getElementById('pb10-input').value=pb10;
+  const order=['easy','long','tempo','intervals','race'];
+  document.getElementById('pace-zones').innerHTML=order.map(k=>{
+    const zz=z[k];const ps=k==='race'?fmtPace(zz.lo):fmtPace(zz.lo)+' – '+fmtPace(zz.hi);
+    return `<div class="pace-zone"><div class="pz-dot" style="background:${zz.dot}"></div><div class="pz-info"><div class="pz-name">${zz.label}</div><div class="pz-feel">${zz.feel}</div></div><div class="pz-pace" style="color:${zz.dot}">${ps}</div></div>`
+  }).join('');
+  const hme=pb10*2.15;const hm=Math.floor(hme);const hs=Math.round((hme-hm)*60);
+  const hps=(hme*60)/21.1;
+  document.getElementById('race-paces').innerHTML=`
+    <div class="pace-zone"><div class="pz-dot" style="background:#993C1D"></div><div class="pz-info"><div class="pz-name">Wirral 10k target</div><div class="pz-feel">Sub 60 min goal</div></div><div class="pz-pace" style="color:#993C1D">5:58/km</div></div>
+    <div class="pace-zone"><div class="pz-dot" style="background:#3B6D11"></div><div class="pz-info"><div class="pz-name">Caernarfon HM estimate</div><div class="pz-feel">Based on your current 10k — run it easy</div></div><div class="pz-pace" style="color:#3B6D11">${hm}:${hs<10?'0':''}${hs}</div></div>
+    <div class="pace-zone" style="border-bottom:none"><div class="pz-dot" style="background:#854F0B"></div><div class="pz-info"><div class="pz-name">Caernarfon HM pace</div><div class="pz-feel">Set a Conwy target after racing this</div></div><div class="pz-pace" style="color:#854F0B">${fmtPace(hps)}</div></div>`;
+}
+function updatePaces(){
+  const v=parseFloat(document.getElementById('pb10-input').value);
+  if(!v||v<30||v>120)return;
+  pb10=v;save();renderPacing();
+}
+function days(d){const t=new Date();t.setHours(0,0,0,0);const x=new Date(d);x.setHours(0,0,0,0);return Math.round((x-t)/86400000)}
+function fmt(d){return new Date(d).toLocaleDateString('en-GB',{day:'numeric',month:'short'})}
+function calcPace(km,min){if(!km||!min)return null;const pm=min/km;const m=Math.floor(pm);const s=Math.round((pm-m)*60);return m+':'+(s<10?'0':'')+s+'/km'}
+function isThisWeek(wid){
+  const today=new Date();today.setHours(0,0,0,0);const dow=today.getDay();
+  const mon=new Date(today);mon.setDate(today.getDate()-(dow===0?6:dow-1));
+  const sun=new Date(mon);sun.setDate(mon.getDate()+6);
+  const ws={'w1':new Date('2026-05-18'),'w2':new Date('2026-05-25'),'w3':new Date('2026-06-01'),'w4':new Date('2026-06-08'),'w5':new Date('2026-06-15'),'w6':new Date('2026-06-22'),'w7':new Date('2026-06-29'),'w8':new Date('2026-07-06'),'w9':new Date('2026-07-13'),'w10':new Date('2026-07-20'),'w11':new Date('2026-07-27'),'w12':new Date('2026-08-03'),'w13':new Date('2026-08-10'),'w14':new Date('2026-08-17'),'w15':new Date('2026-08-24'),'w16':new Date('2026-08-31'),'w17':new Date('2026-09-07'),'w18':new Date('2026-09-14'),'w19':new Date('2026-09-21'),'w20':new Date('2026-09-28'),'w21':new Date('2026-10-05'),'w22':new Date('2026-10-12'),'w23':new Date('2026-10-19'),'w24':new Date('2026-10-26'),'w25':new Date('2026-11-02'),'w26':new Date('2026-11-09')};
+  const s=ws[wid];if(!s)return false;const e=new Date(s);e.setDate(s.getDate()+6);return s<=sun&&e>=mon;
+}
+function sv(v,btn){
+  document.querySelectorAll('.view').forEach(e=>e.classList.remove('on'));
+  document.querySelectorAll('.bn').forEach(e=>e.classList.remove('on'));
+  document.getElementById('v-'+v).classList.add('on');btn.classList.add('on');
+  if(v==='history')rh();if(v==='dashboard')rd();if(v==='pacing')renderPacing();
+}
+function rd(){
+  const all=PLAN.flatMap(p=>p.weeks.flatMap(w=>w.sessions));
+  const done=all.filter(s=>CS[s.id]).length;
+  const tkm=runs.reduce((a,r)=>a+(parseFloat(r.dist)||0),0);
+  document.getElementById('dstats').innerHTML=`
+    <div class="st"><div class="sl">Sessions done</div><div class="sv">${done}/${all.length}</div><div class="ss">${Math.round(done/all.length*100)}% of plan</div></div>
+    <div class="st"><div class="sl">Total km</div><div class="sv">${tkm.toFixed(1)}</div><div class="ss">${runs.length} runs</div></div>
+    <div class="st"><div class="sl">Next race</div><div class="sv" id="nrd">—</div><div class="ss" id="nrn" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">—</div></div>`;
+  const up=RACES.filter(r=>days(r.date)>=0).sort((a,b)=>days(a.date)-days(b.date));
+  if(up.length){document.getElementById('nrd').textContent=days(up[0].date)+'d';document.getElementById('nrn').textContent=up[0].name}
+  document.getElementById('dcards').innerHTML=RACES.map(r=>{
+    const d=days(r.date);const past=d<0;
+    const bg=past?'#F1EFE8':d<=14?'#FAECE7':d<=42?'#FAEEDA':'#E6F1FB';
+    const co=past?'#5F5E5A':d<=14?'#993C1D':d<=42?'#854F0B':'#185FA5';
+    return `<div class="card"><div class="ch"><div><div class="ct">${r.name}</div><div class="cs">${fmt(r.date)} · ${r.dist} · ${r.goal}</div></div><span class="db" style="background:${bg};color:${co}">${past?'Done':d+'d'}</span></div></div>`
+  }).join('');
+  const nx=all.find(s=>!CS[s.id]);
+  const dn=document.getElementById('dnext');
+  if(nx){const ts=TS[nx.type];dn.innerHTML=`<div class="sr" style="border:none;padding:0"><div class="sc ${CS[nx.id]?'done':''}" onclick="tog('${nx.id}')"><i class="ti ti-check"></i></div><div class="si"><div class="sn">${nx.name}</div><div class="sm">${nx.d}</div></div><span class="tp" style="background:${ts.bg};color:${ts.c}">${ts.l}</span></div>`}
+  else{dn.innerHTML='<div class="empty">All sessions done — enjoy race day!</div>'}
+}
+function rplan(){
+  document.getElementById('phases').innerHTML=PLAN.map(ph=>{
+    const wks=ph.weeks.map(w=>{
+      const d=w.sessions.filter(s=>CS[s.id]).length;const t=w.sessions.length;const pct=Math.round(d/t*100);
+      const tw=isThisWeek(w.id);const rr=RACES.find(r=>r.id===w.race);
+      const bcls=rr?'race-week':tw?'this-week':'';
+      const tag=rr?`<span class="week-tag" style="background:#FAEEDA;color:#854F0B">Race week</span>`:tw?`<span class="week-tag" style="background:#E6F1FB;color:#185FA5">This week</span>`:'';
+      const sess=w.sessions.map(s=>{const ts=TS[s.type];const dn=!!CS[s.id];
+        return `<div class="sr"><div class="sc ${dn?'done':''}" onclick="tog('${s.id}')"><i class="ti ti-check"></i></div><div class="si"><div class="sn ${dn?'done':''}">${s.name}</div><div class="sm">${s.d}</div></div><span class="tp" style="background:${ts.bg};color:${ts.c}">${ts.l}</span></div>`
+      }).join('');
+      return `<div class="card ${bcls}" style="margin-bottom:10px">
+        <div class="wh" onclick="var b=this.parentElement.querySelector('.week-sessions');b.style.display=b.style.display==='block'?'none':'block'">
+          <div class="whl"><span class="wl">${w.label}</span>${tag}<span class="wp">${d}/${t}</span></div>
+          <i class="ti ti-chevron-down" style="font-size:16px;color:var(--text2)"></i>
+        </div>
+        <div class="pb-bar"><div class="pb-fill" style="width:${pct}%"></div></div>
+        <div class="week-sessions" style="display:${tw?'block':'none'}">${sess}</div>
+      </div>`
+    }).join('');
+    return `<div class="phase-header"><span class="ph-badge" style="background:${ph.bg};color:${ph.color}">Phase ${ph.ph}</span><span class="ph-name">${ph.name}</span></div>${wks}`
+  }).join('');
+}
+function tog(id){CS[id]=!CS[id];if(!CS[id])delete CS[id];save();rplan();rd()}
+function saveRun(){
+  const date=document.getElementById('ld').value;if(!date){alert('Please pick a date');return}
+  runs.push({date,dist:parseFloat(document.getElementById('ldist').value)||0,time:parseFloat(document.getElementById('ltime').value)||0,type:document.getElementById('ltype').value,notes:document.getElementById('lnotes').value.trim()});
+  save();
+  document.getElementById('ldist').value='';document.getElementById('ltime').value='';document.getElementById('lnotes').value='';
+  const c=document.getElementById('lconf');c.style.display='block';setTimeout(()=>c.style.display='none',2000);rh();rd();
+}
+function delRun(i){if(!confirm('Delete this run?'))return;runs.splice(i,1);save();rh();rd()}
+function rh(){
+  const s=[...runs].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  const tkm=runs.reduce((a,r)=>a+(parseFloat(r.dist)||0),0);
+  const paces=runs.filter(r=>r.dist&&r.time).map(r=>r.time/r.dist);
+  const ap=paces.length?paces.reduce((a,b)=>a+b,0)/paces.length:null;
+  document.getElementById('hstats').innerHTML=`
+    <div class="st"><div class="sl">Total runs</div><div class="sv">${runs.length}</div></div>
+    <div class="st"><div class="sl">Total km</div><div class="sv">${tkm.toFixed(1)}</div></div>
+    <div class="st"><div class="sl">Avg pace</div><div class="sv" style="font-size:16px">${ap?calcPace(1,ap):'—'}</div></div>`;
+  document.getElementById('rcount').textContent=`${runs.length} run${runs.length!==1?'s':''}`;
+  const list=document.getElementById('rlist');
+  if(!s.length){list.innerHTML='<div class="empty">No runs yet.<br>Tap Log to add your first run!</div>';return}
+  list.innerHTML=s.map((r,i)=>{
+    const ts=TS[r.type]||TS.other;const idx=runs.indexOf(r);
+    const ps=r.dist&&r.time?calcPace(r.dist,r.time):'';
+    return `<div class="re"><div class="rd">${fmt(r.date)}</div><div class="ri"><div class="rt">${r.dist?r.dist+'km':''} ${r.time?r.time+'min':''} ${ps?'· '+ps:''}</div><div class="rp"><span class="tp" style="background:${ts.bg};color:${ts.c}">${ts.l}</span></div>${r.notes?`<div class="rno">${r.notes}</div>`:''}</div><button class="delb" onclick="delRun(${idx})"><i class="ti ti-trash" style="font-size:18px"></i></button></div>`
+  }).join('');
+}
+load();
+document.getElementById('ld').value=new Date().toISOString().split('T')[0];
+rd();rplan();renderPacing();
+</script>
+</body>
+</html>
